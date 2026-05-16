@@ -165,6 +165,14 @@ function getSelectValue(selectElement) {
 }
 
 /**
+ * Check if page has any input fields
+ */
+function hasInputFields() {
+  const inputs = document.querySelectorAll('input:not([type="hidden"]), textarea, select');
+  return inputs.length > 0;
+}
+
+/**
  * Collect all form data from the page
  */
 function collectFormData() {
@@ -265,6 +273,32 @@ function setupFormMonitoring() {
 
 function startSOAPMonitoring() {
   setupFormMonitoring();
+  observeDOMChanges();
+}
+
+/**
+ * Observe DOM changes untuk mendeteksi form yang muncul secara dinamis
+ */
+function observeDOMChanges() {
+  // Cek form baru setiap beberapa detik
+  const checkInterval = setInterval(() => {
+    if (!state.isActive) {
+      clearInterval(checkInterval);
+      return;
+    }
+
+    // Jika belum ada floating button dan halaman sekarang memiliki input
+    if (!document.getElementById('soap-floating-btn') && hasInputFields()) {
+      createFloatingButton();
+      console.log('SOAP Assistant - Form detected, floating button created');
+    }
+    // Jika ada floating button tapi tidak ada form lagi, hilangkan button
+    else if (document.getElementById('soap-floating-btn') && !hasInputFields()) {
+      const btn = document.getElementById('soap-floating-btn');
+      btn.remove();
+      console.log('SOAP Assistant - No form detected, floating button removed');
+    }
+  }, 3000); // Cek setiap 3 detik
 }
 
 // ================================================
@@ -621,7 +655,8 @@ async function init() {
   // Pre-create sidebar elements (cold start optimization)
   createSidebar();
 
-  if (state.isActive) {
+  // Hanya tampilkan floating button jika halaman memiliki form input
+  if (state.isActive && hasInputFields()) {
     createFloatingButton();
   }
 
