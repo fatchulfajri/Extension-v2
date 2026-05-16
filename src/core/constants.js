@@ -3,7 +3,8 @@
 
 export const STORAGE_KEYS = {
   ENABLED: 'enabled',
-  N8N_URL: 'n8nUrl'
+  N8N_URL: 'n8nUrl',
+  URL_LIST: 'urlList'
 };
 
 export const MESSAGE_ACTIONS = {

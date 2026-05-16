@@ -12,7 +12,7 @@
     }
 
     body {
-      width: 360px;
+      width: 400px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: #f8fafc;
     }
@@ -112,6 +112,207 @@
       margin: 0 16px;
     }
 
+    /* URL List Section */
+    .url-list-section {
+      margin: 16px;
+    }
+
+    .url-list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .url-list-header h3 {
+      font-size: 14px;
+      color: #1a202c;
+    }
+
+    .add-url-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .add-url-btn:hover {
+      opacity: 0.9;
+    }
+
+    .url-input-container {
+      background: white;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    .url-input-container.active {
+      display: block;
+    }
+
+    .url-input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .url-input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .url-input-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .save-btn {
+      flex: 1;
+      background: #48bb78;
+      color: white;
+      border: none;
+      padding: 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .cancel-btn {
+      flex: 1;
+      background: #e2e8f0;
+      color: #4a5568;
+      border: none;
+      padding: 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .url-list {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .url-item {
+      background: white;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: opacity 0.2s;
+    }
+
+    .url-item.disabled {
+      opacity: 0.6;
+    }
+
+    .url-item-left {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .url-text {
+      font-size: 11px;
+      color: #4a5568;
+      word-break: break-all;
+      display: block;
+    }
+
+    .url-item.disabled .url-text {
+      color: #a0aec0;
+      text-decoration: line-through;
+    }
+
+    .url-status {
+      font-size: 9px;
+      color: #a0aec0;
+      margin-top: 2px;
+    }
+
+    .url-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Small toggle switch for URL items */
+    .url-toggle {
+      position: relative;
+      width: 36px;
+      height: 20px;
+    }
+
+    .url-toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .url-toggle .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #cbd5e0;
+      transition: 0.3s;
+      border-radius: 20px;
+    }
+
+    .url-toggle .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+
+    .url-toggle input:checked + .toggle-slider {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .url-toggle input:checked + .toggle-slider:before {
+      transform: translateX(16px);
+    }
+
+    .delete-btn {
+      background: #f56565;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      cursor: pointer;
+    }
+
+    .delete-btn:hover {
+      background: #e53e3e;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 24px 16px;
+      color: #a0aec0;
+      font-size: 12px;
+    }
+
     .usage {
       padding: 16px;
     }
@@ -162,14 +363,34 @@
 
   <div class="divider"></div>
 
+  <div class="url-list-section">
+    <div class="url-list-header">
+      <h3>URL yang Diizinkan</h3>
+      <button class="add-url-btn" id="add-url-btn">+ Tambah URL</button>
+    </div>
+
+    <div class="url-input-container" id="url-input-container">
+      <input type="text" class="url-input" id="url-input" placeholder="Contoh: https://example.com atau file:///D:/path/to/file.html">
+      <div class="url-input-buttons">
+        <button class="save-btn" id="save-url-btn">Simpan</button>
+        <button class="cancel-btn" id="cancel-url-btn">Batal</button>
+      </div>
+    </div>
+
+    <div class="url-list" id="url-list">
+      <div class="empty-state">Belum ada URL yang ditambahkan</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
   <div class="usage">
     <h3>Cara Penggunaan</h3>
     <ol>
-      <li>Buka halaman dengan form SOAP (EMR/medical records)</li>
-      <li>Tombol floating akan muncul di pojok kanan bawah</li>
-      <li>Isi form SOAP, ekstensi otomatis mengirim ke AI</li>
-      <li>Klik tombol floating untuk melihat koreksi</li>
-      <li>Klik tombol lagi untuk menutup panel</li>
+      <li>Tambahkan URL tempat form SOAP berada</li>
+      <li>Gunakan toggle untuk mengaktifkan/menonaktifkan URL</li>
+      <li>URL aktif (hijau) = extension muncul di halaman tersebut</li>
+      <li>URL nonaktif (abu) = extension tidak muncul</li>
     </ol>
   </div>
 

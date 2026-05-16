@@ -42,18 +42,21 @@ const state = {
   corrections: { S: [], O: [], A: [], P: [] },
   debounceTimer: null,
   n8nWebhookUrl: '',
+  urlList: [], // List of allowed URLs
   viewMode: 'preview' // 'preview' atau 'result'
 };
 
 async function initState() {
-  const settings = await chrome.storage.sync.get(['enabled']);
+  const settings = await chrome.storage.sync.get(['enabled', 'urlList']);
 
   console.log('SOAP Assistant - Settings loaded:', settings);
 
   // Use hardcoded N8N URL
   state.n8nWebhookUrl = DEFAULT_N8N_URL;
+  state.urlList = settings.urlList || [];
 
   console.log('SOAP Assistant - N8N URL:', state.n8nWebhookUrl);
+  console.log('SOAP Assistant - URL List:', state.urlList);
 
   if (settings.enabled === false) {
     state.isActive = false;
@@ -162,6 +165,62 @@ function getSelectValue(selectElement) {
     return Array.from(selectElement.selectedOptions).map(opt => opt.value).join(', ');
   }
   return selectElement.value;
+}
+
+/**
+ * Check if current URL is in the allowed URL list
+ * Returns true if list is empty (allow all) or if current URL matches
+ */
+function isCurrentUrlInList() {
+  // If URL list is empty, don't allow any URLs
+  if (!state.urlList || state.urlList.length === 0) {
+    console.log('SOAP Assistant - URL list is empty');
+    return false;
+  }
+
+  const currentUrl = window.location.href;
+  console.log('SOAP Assistant - Current URL:', currentUrl);
+  console.log('SOAP Assistant - URL List:', state.urlList);
+
+  // Check if current URL matches any URL in the list AND is enabled
+  const match = state.urlList.some(item => {
+    // Skip if URL is disabled
+    if (item.enabled === false) {
+      console.log('SOAP Assistant - URL disabled:', item.url);
+      return false;
+    }
+
+    const allowedUrl = item.url;
+
+    // Try exact match first
+    if (currentUrl === allowedUrl) {
+      console.log('SOAP Assistant - URL exact match:', allowedUrl);
+      return true;
+    }
+
+    // Try startsWith match (for subpages)
+    if (currentUrl.startsWith(allowedUrl)) {
+      console.log('SOAP Assistant - URL startsWith match:', allowedUrl);
+      return true;
+    }
+
+    // For file:// URLs, also try decoding and comparing
+    try {
+      const decodedCurrent = decodeURIComponent(currentUrl);
+      const decodedAllowed = decodeURIComponent(allowedUrl);
+      if (decodedCurrent === decodedAllowed || decodedCurrent.startsWith(decodedAllowed)) {
+        console.log('SOAP Assistant - URL decoded match:', allowedUrl);
+        return true;
+      }
+    } catch (e) {
+      // If decoding fails, skip this item
+    }
+
+    return false;
+  });
+
+  console.log('SOAP Assistant - URL match result:', match);
+  return match;
 }
 
 /**
@@ -300,16 +359,19 @@ function observeDOMChanges() {
       return;
     }
 
-    // Jika belum ada floating button dan halaman sekarang memiliki input
-    if (!document.getElementById('soap-floating-btn') && hasInputFields()) {
+    const hasBtn = document.getElementById('soap-floating-btn');
+    const shouldShow = isCurrentUrlInList() && hasInputFields();
+
+    // Jika belum ada floating button dan seharusnya ada
+    if (!hasBtn && shouldShow) {
       createFloatingButton();
       console.log('SOAP Assistant - Form detected, floating button created');
     }
-    // Jika ada floating button tapi tidak ada form lagi, hilangkan button
-    else if (document.getElementById('soap-floating-btn') && !hasInputFields()) {
+    // Jika ada floating button tapi seharusnya tidak ada
+    else if (hasBtn && !shouldShow) {
       const btn = document.getElementById('soap-floating-btn');
       btn.remove();
-      console.log('SOAP Assistant - No form detected, floating button removed');
+      console.log('SOAP Assistant - Conditions not met, floating button removed');
     }
   }, 3000); // Cek setiap 3 detik
 }
@@ -637,12 +699,12 @@ function handleMessage(request, sender, sendResponse) {
       state.isActive = request.enabled;
 
       if (request.enabled) {
-        // Hanya buat floating button jika ada form input
-        if (hasInputFields()) {
+        // Hanya buat floating button jika: URL di list DAN ada form input
+        if (isCurrentUrlInList() && hasInputFields()) {
           console.log('SOAP Assistant - Creating floating button');
           createFloatingButton();
         } else {
-          console.log('SOAP Assistant - Extension enabled but no form detected');
+          console.log('SOAP Assistant - Extension enabled but conditions not met');
         }
       } else {
         console.log('SOAP Assistant - Removing floating button and sidebar');
@@ -655,6 +717,24 @@ function handleMessage(request, sender, sendResponse) {
 
     case MESSAGE_ACTIONS.REFRESH_CORRECTIONS:
       sendToN8N();
+      break;
+
+    case 'urlListChanged':
+      console.log('SOAP Assistant - URL list changed:', request.urlList);
+      state.urlList = request.urlList || [];
+
+      // Re-evaluate floating button visibility
+      const hasBtn = document.getElementById('soap-floating-btn');
+      const shouldShow = state.isActive && isCurrentUrlInList() && hasInputFields();
+
+      if (!hasBtn && shouldShow) {
+        createFloatingButton();
+        console.log('SOAP Assistant - URL list updated, floating button created');
+      } else if (hasBtn && !shouldShow) {
+        const btn = document.getElementById('soap-floating-btn');
+        btn?.remove();
+        console.log('SOAP Assistant - URL list updated, floating button removed');
+      }
       break;
   }
 
@@ -673,8 +753,11 @@ async function init() {
   // Pre-create sidebar elements (cold start optimization)
   createSidebar();
 
-  // Hanya tampilkan floating button jika halaman memiliki form input
-  if (state.isActive && hasInputFields()) {
+  // Hanya tampilkan floating button jika:
+  // 1. Extension aktif
+  // 2. URL saat ini ada di dalam URL list
+  // 3. Halaman memiliki form input (bukan search)
+  if (state.isActive && isCurrentUrlInList() && hasInputFields()) {
     createFloatingButton();
   }
 
