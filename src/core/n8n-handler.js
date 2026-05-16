@@ -27,12 +27,20 @@ export async function sendToN8N(url, soapData) {
       throw new Error(`N8N responded with status: ${response.status}`);
     }
 
-    const result = await response.json();
+    // Cek apakah response body kosong
+    const text = await response.text();
+    if (!text || text.trim() === '') {
+      console.warn('SOAP Assistant - N8N returned empty response');
+      return getEmptyCorrections();
+    }
+
+    // Parse JSON
+    const result = JSON.parse(text);
     return formatN8NResponse(result);
 
   } catch (error) {
     console.error('SOAP Assistant - N8N Error:', error);
-    return getMockCorrections();
+    return getEmptyCorrections();
   }
 }
 
@@ -88,6 +96,19 @@ function formatN8NResponse(result) {
     O: result.O || [],
     A: result.A || [],
     P: result.P || []
+  };
+}
+
+/**
+ * Get empty corrections (when N8N returns error or empty response)
+ * @returns {Object} - Empty corrections
+ */
+function getEmptyCorrections() {
+  return {
+    S: [],
+    O: [],
+    A: [],
+    P: []
   };
 }
 
