@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "SOAP AI Assistant",
+  "version": "1.0.0",
+  "description": "AI-powered SOAP documentation assistant with real-time correction",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*/*"
+  ],
+  "background": {
+    "service_worker": "src/core/service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content/content.js"],
+      "css": ["src/content/styles/floating-button.css", "src/content/styles/sidebar.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "src/popup/popup.html"
+  }
+}

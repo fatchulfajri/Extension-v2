@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SOAP AI Assistant</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 360px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 24px 20px;
+      text-align: center;
+      color: white;
+    }
+
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .header p {
+      font-size: 12px;
+      opacity: 0.9;
+      margin-top: 4px;
+    }
+
+    .toggle-card {
+      background: white;
+      margin: 16px;
+      padding: 16px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .toggle-label {
+      flex: 1;
+    }
+
+    .toggle-label h3 {
+      font-size: 14px;
+      color: #1a202c;
+      margin-bottom: 2px;
+    }
+
+    .toggle-label p {
+      font-size: 11px;
+      color: #718096;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 48px;
+      height: 26px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #cbd5e0;
+      transition: 0.3s;
+      border-radius: 26px;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .toggle-switch input:checked + .toggle-slider:before {
+      transform: translateX(22px);
+    }
+
+    .divider {
+      height: 1px;
+      background: #e2e8f0;
+      margin: 0 16px;
+    }
+
+    .usage {
+      padding: 16px;
+    }
+
+    .usage h3 {
+      font-size: 12px;
+      color: #718096;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .usage ol {
+      padding-left: 20px;
+    }
+
+    .usage li {
+      font-size: 12px;
+      color: #4a5568;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 12px;
+      font-size: 10px;
+      color: #a0aec0;
+      border-top: 1px solid #e2e8f0;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>SOAP AI Assistant</h1>
+    <p>Asisten dokumentasi SOAP berbasis AI</p>
+  </div>
+
+  <div class="toggle-card">
+    <div class="toggle-label">
+      <h3>Aktifkan Ekstensi</h3>
+      <p id="status-text">Ekstensi aktif</p>
+    </div>
+    <label class="toggle-switch">
+      <input type="checkbox" id="enabled-toggle" checked>
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="usage">
+    <h3>Cara Penggunaan</h3>
+    <ol>
+      <li>Buka halaman dengan form SOAP (EMR/medical records)</li>
+      <li>Tombol floating akan muncul di pojok kanan bawah</li>
+      <li>Isi form SOAP, ekstensi otomatis mengirim ke AI</li>
+      <li>Klik tombol floating untuk melihat koreksi</li>
+      <li>Klik tombol lagi untuk menutup panel</li>
+    </ol>
+  </div>
+
+  <div class="footer">
+    v1.0.0
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
