@@ -29,10 +29,7 @@ const SOAP_LABELS = {
 // Ganti URL ini dengan URL webhook N8N yang sebenarnya
 // ================================================
 
-const DEFAULT_N8N_URL = 'https://your-n8n-instance.com/webhook/soap-correction';
-
-// Atau gunakan URL production:
-// const DEFAULT_N8N_URL = 'https://production-n8n.com/webhook/soap-ai-assistant';
+const DEFAULT_N8N_URL = 'https://fatchulfajri.app.n8n.cloud/webhook-test/validate-form';
 
 // ================================================
 // STATE MANAGEMENT
@@ -275,7 +272,7 @@ function startSOAPMonitoring() {
 // ================================================
 
 async function sendToN8N() {
-  if (!state.n8nWebhookUrl || state.n8nWebhookUrl === DEFAULT_N8N_URL) {
+  if (!state.n8nWebhookUrl) {
     console.log('SOAP Assistant: N8N URL not configured');
     return;
   }
