@@ -29,7 +29,7 @@ const SOAP_LABELS = {
 // Ganti URL ini dengan URL webhook N8N yang sebenarnya
 // ================================================
 
-const DEFAULT_N8N_URL = 'https://fatchulfajri.app.n8n.cloud/webhook-test/validate-form';
+const DEFAULT_N8N_URL = 'https://n8n.zapp.covwatch.net/webhook/validate-form';
 
 // ================================================
 // STATE MANAGEMENT
@@ -43,7 +43,9 @@ const state = {
   debounceTimer: null,
   n8nWebhookUrl: '',
   urlList: [], // List of allowed URLs
-  viewMode: 'preview' // 'preview' atau 'result'
+  isLoading: false, // Loading state untuk N8N request
+  isFirstLoad: true, // Track first load untuk tampilan loading
+  viewMode: 'result' // 'result' mode untuk menampilkan koreksi
 };
 
 async function initState() {
@@ -306,16 +308,16 @@ function updateFormData() {
 }
 
 function handleFormInput() {
-  // Debounce form data collection - hanya update setelah berhenti mengetik
+  // Debounce form data collection - kirim ke N8N setelah berhenti mengetik
   clearDebounceTimer();
   state.debounceTimer = setTimeout(() => {
     updateFormData();
 
-    // Jika sidebar terbuka dan dalam mode preview, re-render sidebar
-    if (state.sidebarOpen && state.viewMode === 'preview') {
-      renderSidebar();
+    // Kirim otomatis ke N8N untuk analisis realtime
+    if (state.formData.length > 0) {
+      sendToN8N();
     }
-  }, 3000); // Update setelah 3 detik berhenti mengetik
+  }, 2000); // Kirim setelah 2 detik berhenti mengetik
 }
 
 function setupFormMonitoring() {
@@ -387,6 +389,17 @@ async function sendToN8N() {
   }
 
   try {
+    // Set loading state
+    state.isLoading = true;
+
+    // Buka sidebar otomatis jika belum terbuka
+    if (!state.sidebarOpen) {
+      toggleSidebar();
+    }
+
+    // Render sidebar dengan loading state (hanya jika first load)
+    renderSidebar();
+
     // Refresh form data before sending
     updateFormData();
 
@@ -396,17 +409,20 @@ async function sendToN8N() {
       url: state.n8nWebhookUrl
     });
 
+    // Reset loading state dan first load flag
+    state.isLoading = false;
+    state.isFirstLoad = false;
+
     if (response && response.corrections) {
       state.corrections = response.corrections;
-      state.viewMode = 'result'; // Switch to result view
       updateBadge();
-
-      if (state.sidebarOpen) {
-        renderSidebar();
-      }
+      renderSidebar();
     }
   } catch (error) {
     console.error('SOAP Assistant Error:', error);
+    state.isLoading = false;
+    state.isFirstLoad = false;
+    renderSidebar();
   }
 }
 
@@ -443,8 +459,8 @@ function toggleSidebar() {
   const button = document.getElementById('soap-floating-btn');
 
   if (state.sidebarOpen) {
-    // Reset to preview mode when opening sidebar
-    state.viewMode = 'preview';
+    // Reset first load flag saat sidebar dibuka
+    state.isFirstLoad = true;
     renderSidebar();
     sidebar?.classList.add('open');
     button?.classList.add('active');
@@ -484,13 +500,19 @@ function renderSidebar() {
   const categoriesWithCorrections = Object.entries(state.corrections)
     .filter(([_, items]) => items.length > 0);
 
-  // Tentukan konten berdasarkan mode
+  // Tentukan konten berdasarkan state
   let contentHTML = '';
-  if (state.viewMode === 'preview') {
-    contentHTML = getSOAPPreviewHTML();
+  if (state.formData.length === 0) {
+    // Belum ada isian
+    contentHTML = getNoDataHTML();
+  } else if (state.isLoading && state.isFirstLoad) {
+    // Sedang menganalisis - hanya tampilkan saat first load
+    contentHTML = getLoadingHTML();
   } else if (totalCorrections > 0) {
+    // Ada koreksi
     contentHTML = getCorrectionsHTML(categoriesWithCorrections);
   } else {
+    // Tidak ada koreksi
     contentHTML = getEmptyStateHTML();
   }
 
@@ -505,24 +527,11 @@ function renderSidebar() {
     </div>
 
     <div class="soap-sidebar-footer">
-      ${state.viewMode === 'preview' || totalCorrections === 0 ? `
-        <button class="soap-send-btn" id="soap-send-to-ai">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 19V5M5 12l7-7 7 7"/>
-          </svg>
-          Kirim ke AI
-        </button>
-      ` : `
-        <button class="soap-back-btn" id="soap-back-preview">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
-          </svg>
-          Kembali ke Data
-        </button>
+      ${state.formData.length > 0 && totalCorrections > 0 ? `
         <button class="soap-dismiss-all-btn" id="soap-dismiss-all">
           Tutup Semua
         </button>
-      `}
+      ` : ''}
     </div>
   `;
 
@@ -578,13 +587,57 @@ function highlightJSON(json) {
     .replace(/:\s*(null)/g, ': <span class="null">$1</span>');
 }
 
+function getLoadingHTML() {
+  return `
+    <div class="soap-loading-state">
+      <svg class="soap-spinner" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="32" style="animation: soap-spin 1.5s linear infinite;"/>
+      </svg>
+      <p>Sedang menganalisis dokumentasi SOAP...</p>
+      <p class="soap-loading-hint">Mohon tunggu sebentar</p>
+    </div>
+    <style>
+      @keyframes soap-spin {
+        to { stroke-dashoffset: 0; }
+      }
+      .soap-loading-state {
+        text-align: center;
+        padding: 32px 16px;
+        color: #718096;
+      }
+      .soap-loading-state p {
+        margin-top: 16px;
+        font-size: 13px;
+        color: #4a5568;
+      }
+      .soap-loading-hint {
+        font-size: 11px !important;
+        color: #a0aec0 !important;
+      }
+    </style>
+  `;
+}
+
 function getEmptyStateHTML() {
   return `
     <div class="soap-empty-state">
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
       </svg>
-      <p>Tidak ada koreksi. Dokumentasi SOAP terlihat baik!</p>
+      <p>Dokumentasi SOAP terlihat baik!</p>
+      <p class="soap-preview-hint">Tidak ada koreksi yang diperlukan</p>
+    </div>
+  `;
+}
+
+function getNoDataHTML() {
+  return `
+    <div class="soap-empty-state">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+      </svg>
+      <p>Belum ada isian</p>
+      <p class="soap-preview-hint">Isi form SOAP untuk memulai analisis</p>
     </div>
   `;
 }
@@ -635,51 +688,12 @@ function getCorrectionItemHTML(item) {
 
 function attachSidebarListeners() {
   document.getElementById('soap-close-sidebar')?.addEventListener('click', toggleSidebar);
-  document.getElementById('soap-send-to-ai')?.addEventListener('click', handleSendToAI);
-  document.getElementById('soap-back-preview')?.addEventListener('click', handleBackToPreview);
   document.getElementById('soap-dismiss-all')?.addEventListener('click', handleDismissAll);
 }
 
 /**
- * Handle send to AI button click
+ * Handle dismiss all corrections
  */
-async function handleSendToAI() {
-  const btn = document.getElementById('soap-send-to-ai');
-
-  // Show loading state
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = `
-      <svg class="soap-spinning" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="32"/>
-      </svg>
-      Mengirim...
-    `;
-  }
-
-  // Send to N8N
-  await sendToN8N();
-
-  // Restore button and switch to result view
-  if (btn) {
-    btn.disabled = false;
-    btn.innerHTML = `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12 19V5M5 12l7-7 7 7"/>
-      </svg>
-      Kirim ke AI
-    `;
-  }
-}
-
-/**
- * Handle back to preview button click
- */
-function handleBackToPreview() {
-  state.viewMode = 'preview';
-  renderSidebar();
-}
-
 function handleDismissAll() {
   resetCorrections();
   updateBadge();
