@@ -165,11 +165,24 @@ function getSelectValue(selectElement) {
 }
 
 /**
- * Check if page has any input fields
+ * Check if page has any input fields (excluding search boxes)
  */
 function hasInputFields() {
   const inputs = document.querySelectorAll('input:not([type="hidden"]), textarea, select');
-  return inputs.length > 0;
+  let hasForm = false;
+
+  inputs.forEach((element) => {
+    // Skip search inputs
+    if (element.type === 'search') return;
+    if (element.placeholder?.toLowerCase().includes('search')) return;
+    if (element.name?.toLowerCase().includes('search')) return;
+    if (element.id?.toLowerCase().includes('search')) return;
+    if (element.getAttribute('role') === 'search') return;
+
+    hasForm = true;
+  });
+
+  return hasForm;
 }
 
 /**
@@ -624,8 +637,13 @@ function handleMessage(request, sender, sendResponse) {
       state.isActive = request.enabled;
 
       if (request.enabled) {
-        console.log('SOAP Assistant - Creating floating button');
-        createFloatingButton();
+        // Hanya buat floating button jika ada form input
+        if (hasInputFields()) {
+          console.log('SOAP Assistant - Creating floating button');
+          createFloatingButton();
+        } else {
+          console.log('SOAP Assistant - Extension enabled but no form detected');
+        }
       } else {
         console.log('SOAP Assistant - Removing floating button and sidebar');
         const btn = document.getElementById('soap-floating-btn');
