@@ -42,6 +42,32 @@ export async function sendToN8N(url, soapData) {
  * @returns {Object} - Formatted corrections
  */
 function formatN8NResponse(result) {
+  // Handle new format from n8n webhook:
+  // {
+  //   hasil_analisis: [
+  //     { lokasi_field, kategori, masalah, rekomendasi_perbaikan }
+  //   ],
+  //   ringkasan_kategori: { S: 1, O: 1, A: 0, P: 0 }
+  // }
+
+  if (result.hasil_analisis && Array.isArray(result.hasil_analisis)) {
+    const corrections = { S: [], O: [], A: [], P: [] };
+
+    result.hasil_analisis.forEach(item => {
+      const category = item.kategori || item.lokasi_field?.substring(0, 1).toUpperCase();
+      if (corrections[category]) {
+        corrections[category].push({
+          message: item.masalah || 'Issue found',
+          severity: SEVERITY_LEVELS.WARNING,
+          suggestion: item.rekomendasi_perbaiki || item.rekomendasi_perbaikan || '',
+          original: item.original || ''
+        });
+      }
+    });
+
+    return corrections;
+  }
+
   // Expected format from N8N:
   // {
   //   corrections: {
