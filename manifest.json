@@ -1,8 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "SOAP AI Assistant",
+  "name": "Claim Analytic System for Enhancement",
   "version": "1.0.0",
   "description": "AI-powered SOAP documentation assistant with real-time correction",
+  "icons": {
+    "16": "assets/case_logo.png",
+    "48": "assets/case_logo.png",
+    "128": "assets/case_logo.png"
+  },
   "permissions": [
     "activeTab",
     "storage"
@@ -23,6 +28,11 @@
     }
   ],
   "action": {
-    "default_popup": "src/popup/popup.html"
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "assets/case_logo.png",
+      "48": "assets/case_logo.png",
+      "128": "assets/case_logo.png"
+    }
   }
 }
