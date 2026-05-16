@@ -238,7 +238,7 @@ function handleFormInput() {
     if (state.sidebarOpen && state.viewMode === 'preview') {
       renderSidebar();
     }
-  }, 500); // Update setelah 500ms berhenti mengetik
+  }, 3000); // Update setelah 3 detik berhenti mengetik
 }
 
 function setupFormMonitoring() {
@@ -355,6 +355,16 @@ function createSidebar() {
     sidebar.id = 'soap-sidebar';
     sidebar.className = 'soap-sidebar';
     document.body.appendChild(sidebar);
+
+    // Pre-render empty sidebar untuk cold start
+    sidebar.innerHTML = `
+      <div class="soap-sidebar-header">
+        <h3>SOAP Assistant</h3>
+        <button class="soap-close-btn" id="soap-close-sidebar">&times;</button>
+      </div>
+      <div class="soap-sidebar-content"></div>
+      <div class="soap-sidebar-footer"></div>
+    `;
   }
   return sidebar;
 }
@@ -610,6 +620,9 @@ chrome.runtime.onMessage.addListener(handleMessage);
 
 async function init() {
   await initState();
+
+  // Pre-create sidebar elements (cold start optimization)
+  createSidebar();
 
   if (state.isActive) {
     createFloatingButton();
