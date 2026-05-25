@@ -1,0 +1,367 @@
+/* SOAP AI Assistant - Popup Styles
+   ================================================ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 400px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f8fafc;
+}
+
+/* ================================================
+   HEADER
+   ================================================ */
+
+.header {
+  background: #3F856F;
+  padding: 24px 20px;
+  text-align: center;
+  color: white;
+}
+
+.header h1 {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.header p {
+  font-size: 12px;
+  opacity: 0.9;
+  margin-top: 4px;
+}
+
+/* ================================================
+   TOGGLE CARD
+   ================================================ */
+
+.toggle-card {
+  background: white;
+  margin: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.toggle-label {
+  flex: 1;
+}
+
+.toggle-label h3 {
+  font-size: 14px;
+  color: #1a202c;
+  margin-bottom: 2px;
+}
+
+.toggle-label p {
+  font-size: 11px;
+  color: #718096;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 48px;
+  height: 26px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e0;
+  transition: 0.3s;
+  border-radius: 26px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: #3F856F;
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(22px);
+}
+
+.divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 0 16px;
+}
+
+/* ================================================
+   URL LIST SECTION
+   ================================================ */
+
+.url-list-section {
+  margin: 16px;
+}
+
+.url-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.url-list-header h3 {
+  font-size: 14px;
+  color: #1a202c;
+}
+
+.add-url-btn {
+  background: #3F856F;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.add-url-btn:hover {
+  background: #35725d;
+}
+
+.url-input-container {
+  background: white;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  display: none;
+}
+
+.url-input-container.active {
+  display: block;
+}
+
+.url-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.url-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.url-input-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.save-btn {
+  flex: 1;
+  background: #3F856F;
+  color: white;
+  border: none;
+  padding: 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.save-btn:hover {
+  background: #35725d;
+}
+
+.cancel-btn {
+  flex: 1;
+  background: #e2e8f0;
+  color: #4a5568;
+  border: none;
+  padding: 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.cancel-btn:hover {
+  background: #cbd5e0;
+}
+
+.url-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.url-item {
+  background: white;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: opacity 0.2s;
+}
+
+.url-item.disabled {
+  opacity: 0.6;
+}
+
+.url-item-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.url-text {
+  font-size: 11px;
+  color: #4a5568;
+  word-break: break-all;
+  display: block;
+}
+
+.url-item.disabled .url-text {
+  color: #a0aec0;
+  text-decoration: line-through;
+}
+
+.url-status {
+  font-size: 9px;
+  color: #a0aec0;
+  margin-top: 2px;
+}
+
+.url-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Small toggle switch for URL items */
+.url-toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+}
+
+.url-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.url-toggle .toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e0;
+  transition: 0.3s;
+  border-radius: 20px;
+}
+
+.url-toggle .toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.url-toggle input:checked + .toggle-slider {
+  background: #3F856F;
+}
+
+.url-toggle input:checked + .toggle-slider:before {
+  transform: translateX(16px);
+}
+
+.delete-btn {
+  background: #f56565;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.delete-btn:hover {
+  background: #e53e3e;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 24px 16px;
+  color: #a0aec0;
+  font-size: 12px;
+}
+
+/* ================================================
+   USAGE SECTION
+   ================================================ */
+
+.usage {
+  padding: 16px;
+}
+
+.usage h3 {
+  font-size: 12px;
+  color: #718096;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.usage ol {
+  padding-left: 20px;
+}
+
+.usage li {
+  font-size: 12px;
+  color: #4a5568;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+/* ================================================
+   FOOTER
+   ================================================ */
+
+.footer {
+  text-align: center;
+  padding: 12px;
+  font-size: 10px;
+  color: #a0aec0;
+  border-top: 1px solid #e2e8f0;
+}
