@@ -41,19 +41,20 @@
 
 .soap-btn-badge {
   position: absolute;
-  top: -6px;
-  right: -6px;
-  background: #ef4444;
+  top: -8px;
+  right: -8px;
+  background: #ff4757;
   color: white;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: bold;
-  min-width: 16px;
-  height: 16px;
-  border-radius: 8px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 4px;
+  padding: 0 5px;
+  animation: soap-badge-pop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 @keyframes soap-btn-appear {
@@ -77,38 +78,6 @@
 
 .soap-floating-btn.active {
   background: #3F856F;
-}
-
-.soap-btn-icon {
-  position: relative;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.soap-toggle-logo {
-  width: 36px;
-  height: 36px;
-  object-fit: contain;
-}
-
-.soap-btn-badge {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  background: #ff4757;
-  color: white;
-  font-size: 11px;
-  font-weight: bold;
-  min-width: 18px;
-  height: 18px;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 5px;
-  animation: soap-badge-pop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 @keyframes soap-badge-pop {

@@ -1,5 +1,11 @@
-// SOAP AI Assistant - Content Script (Single File)
+// SOAP AI Assistant - Content Script
 // ================================================
+
+// ================================================
+// HARDCODED N8N WEBHOOK URL
+// ================================================
+
+const DEFAULT_N8N_URL = 'https://n8n.zapp.covwatch.net/webhook/validate-form';
 
 // ================================================
 // CONSTANTS
@@ -23,13 +29,6 @@ const SOAP_LABELS = {
   A: 'Assessment - Analisis',
   P: 'Plan - Rencana'
 };
-
-// ================================================
-// HARDCODED N8N WEBHOOK URL
-// Ganti URL ini dengan URL webhook N8N yang sebenarnya
-// ================================================
-
-const DEFAULT_N8N_URL = 'https://n8n.zapp.covwatch.net/webhook/validate-form';
 
 // ================================================
 // STATE MANAGEMENT
@@ -627,55 +626,6 @@ function renderSidebar() {
   `;
 
   attachSidebarListeners();
-}
-
-/**
- * Get form data preview HTML
- */
-function getSOAPPreviewHTML() {
-  // Buat JSON yang rapi dari form data
-  const formDataJSON = JSON.stringify(state.formData, null, 2);
-
-  return `
-    <div class="soap-preview-section">
-      <div class="soap-preview-header">
-        <h4>Data Form yang Terdeteksi</h4>
-        <p class="soap-preview-subtitle">
-          ${state.formData.length} field${state.formData.length !== 1 ? 's' : ''} ditemukan
-          ${state.formData.length === 0 ? '(tidak ada data)' : ''}
-        </p>
-      </div>
-
-      ${state.formData.length > 0 ? `
-        <div class="soap-json-container">
-          <pre class="soap-json-display">${highlightJSON(formDataJSON)}</pre>
-        </div>
-      ` : `
-        <div class="soap-empty-state">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="8" x2="12" y2="12"/>
-            <line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
-          <p>Belum ada data form yang terdeteksi.</p>
-          <p class="soap-preview-hint">Isi form pada halaman untuk mengambil data.</p>
-        </div>
-      `}
-    </div>
-  `;
-}
-
-/**
- * Highlight JSON dengan syntax coloring
- */
-function highlightJSON(json) {
-  return json
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?)/g, '<span class="key">$1</span>')
-    .replace(/:\s*("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*")/g, ': <span class="string">$1</span>')
-    .replace(/:\s*(null)/g, ': <span class="null">$1</span>');
 }
 
 function getLoadingHTML() {

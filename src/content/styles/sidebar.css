@@ -92,89 +92,6 @@
   background: #a1a1a1;
 }
 
-/* ================================================
-   SOAP PREVIEW SECTION
-   ================================================ */
-
-.soap-preview-section {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.soap-preview-header {
-  text-align: center;
-}
-
-.soap-preview-header h4 {
-  font-size: 14px;
-  font-weight: 300;
-  color: #1a202c;
-  margin-bottom: 4px;
-}
-
-.soap-preview-subtitle {
-  font-size: 11px;
-  color: #718096;
-  margin: 0;
-}
-
-.soap-json-container {
-  background: #1a202c;
-  border-radius: 10px;
-  padding: 12px;
-  overflow: hidden;
-}
-
-.soap-json-display {
-  margin: 0;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 11px;
-  line-height: 1.5;
-  color: #e2e8f0;
-  overflow-x: auto;
-  white-space: pre-wrap;
-  word-break: break-all;
-}
-
-/* JSON Syntax Highlighting */
-.soap-json-display .key {
-  color: #63b3ed;
-}
-
-.soap-json-display .string {
-  color: #68d391;
-}
-
-.soap-json-display .null {
-  color: #fc8181;
-  font-style: italic;
-}
-
-/* Back Button */
-.soap-back-btn {
-  flex: 1;
-  padding: 10px 16px;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: all 0.2s ease;
-  background: white;
-  color: #718096;
-  border: 1px solid #e2e8f0;
-}
-
-.soap-back-btn:hover {
-  background: #edf2f7;
-  color: #4a5568;
-}
-
 /* Empty State */
 .soap-empty-state {
   text-align: center;
@@ -401,7 +318,6 @@
   border-top: 1px solid #e2e8f0;
 }
 
-.soap-send-btn,
 .soap-dismiss-all-btn {
   flex: 1;
   padding: 10px 16px;
@@ -415,26 +331,6 @@
   justify-content: center;
   gap: 8px;
   transition: all 0.2s ease;
-}
-
-.soap-send-btn {
-  background: #3F856F;
-  color: white;
-}
-
-.soap-send-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(63, 133, 111, 0.3);
-  background: #35725d;
-}
-
-.soap-send-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.soap-dismiss-all-btn {
   background: white;
   color: #718096;
   border: 1px solid #e2e8f0;
@@ -445,37 +341,4 @@
   color: #4a5568;
 }
 
-/* Spinning animation for loading state */
-.soap-spinning {
-  animation: soap-spin 1s linear infinite;
-}
 
-@keyframes soap-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Responsive */
-@media (max-width: 480px) {
-  .soap-sidebar {
-    width: 100%;
-    right: -100%;
-  }
-
-  .soap-floating-btn {
-    bottom: 20px;
-    right: 20px;
-    width: 50px;
-    height: 50px;
-  }
-
-  .soap-notification {
-    right: 10px;
-    left: 10px;
-    top: 10px;
-  }
-}
