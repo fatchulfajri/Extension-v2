@@ -7,9 +7,9 @@
   right: 30px;
   width: 56px;
   height: 56px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #3F856F;
   border-radius: 50%;
-  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 20px rgba(63, 133, 111, 0.4);
   cursor: pointer;
   z-index: 999989;
   display: flex;
@@ -33,7 +33,7 @@
 
 .soap-floating-btn:hover {
   transform: scale(1.1);
-  box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
+  box-shadow: 0 6px 25px rgba(63, 133, 111, 0.5);
 }
 
 .soap-floating-btn:active {
@@ -41,8 +41,8 @@
 }
 
 .soap-floating-btn.active {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  box-shadow: 0 4px 20px rgba(245, 87, 108, 0.4);
+  background: #2e6350;
+  box-shadow: 0 4px 20px rgba(46, 99, 80, 0.4);
 }
 
 .soap-btn-icon {

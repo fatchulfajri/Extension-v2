@@ -481,8 +481,14 @@ function createSidebar() {
     // Pre-render empty sidebar untuk cold start
     sidebar.innerHTML = `
       <div class="soap-sidebar-header">
-        <h3>SOAP Assistant</h3>
-        <button class="soap-close-btn" id="soap-close-sidebar">&times;</button>
+        <div class="soap-header-left">
+          <img src="${chrome.runtime.getURL('assets/logo-white.png')}" alt="CASE" class="soap-logo">
+        </div>
+        <button class="soap-close-btn" id="soap-close-sidebar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
       </div>
       <div class="soap-sidebar-content"></div>
       <div class="soap-sidebar-footer"></div>
@@ -518,8 +524,14 @@ function renderSidebar() {
 
   sidebar.innerHTML = `
     <div class="soap-sidebar-header">
-      <h3>SOAP Assistant</h3>
-      <button class="soap-close-btn" id="soap-close-sidebar">&times;</button>
+      <div class="soap-header-left">
+        <img src="${chrome.runtime.getURL('assets/logo-white.png')}" alt="CASE" class="soap-logo">
+      </div>
+      <button class="soap-close-btn" id="soap-close-sidebar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
     </div>
 
     <div class="soap-sidebar-content">
@@ -590,10 +602,10 @@ function highlightJSON(json) {
 function getLoadingHTML() {
   return `
     <div class="soap-loading-state">
-      <svg class="soap-spinner" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg class="soap-spinner" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3F856F" stroke-width="2">
         <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="32" style="animation: soap-spin 1.5s linear infinite;"/>
       </svg>
-      <p>Sedang menganalisis dokumentasi SOAP...</p>
+      <p class="soap-loading-title">Sedang menganalisis...</p>
       <p class="soap-loading-hint">Mohon tunggu sebentar</p>
     </div>
     <style>
@@ -602,17 +614,29 @@ function getLoadingHTML() {
       }
       .soap-loading-state {
         text-align: center;
-        padding: 32px 16px;
+        padding: 60px 24px;
         color: #718096;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 300px;
       }
       .soap-loading-state p {
         margin-top: 16px;
-        font-size: 13px;
+        font-size: 14px;
         color: #4a5568;
       }
+      .soap-loading-title {
+        font-size: 16px;
+        font-weight: 500;
+        color: #2d3748;
+        margin: 16px 0 8px 0;
+      }
       .soap-loading-hint {
-        font-size: 11px !important;
-        color: #a0aec0 !important;
+        font-size: 13px !important;
+        color: #718096 !important;
+        margin: 0 !important;
       }
     </style>
   `;
@@ -621,10 +645,10 @@ function getLoadingHTML() {
 function getEmptyStateHTML() {
   return `
     <div class="soap-empty-state">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#3F856F" stroke-width="2">
         <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
       </svg>
-      <p>Dokumentasi SOAP terlihat baik!</p>
+      <p class="soap-empty-title">Dokumen terlihat baik!</p>
       <p class="soap-preview-hint">Tidak ada koreksi yang diperlukan</p>
     </div>
   `;
@@ -633,10 +657,10 @@ function getEmptyStateHTML() {
 function getNoDataHTML() {
   return `
     <div class="soap-empty-state">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#3F856F" stroke-width="2">
         <rect x="3" y="3" width="18" height="18" rx="2"/>
       </svg>
-      <p>Belum ada isian</p>
+      <p class="soap-empty-title">Belum ada isian</p>
       <p class="soap-preview-hint">Isi form SOAP untuk memulai analisis</p>
     </div>
   `;
