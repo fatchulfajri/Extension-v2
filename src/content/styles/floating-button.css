@@ -3,46 +3,26 @@
 
 .soap-floating-btn {
   position: fixed;
-  bottom: 30px;
-  right: 30px;
-  width: 56px;
-  height: 56px;
-  background: #3F856F;
-  border-radius: 50%;
-  box-shadow: 0 4px 20px rgba(63, 133, 111, 0.4);
-  cursor: pointer;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  cursor: grab;
   z-index: 999989;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: soap-btn-appear 0.3s ease-out;
-  border: 3px solid white;
-}
-
-@keyframes soap-btn-appear {
-  from {
-    transform: scale(0) rotate(-180deg);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
-  }
-}
-
-.soap-floating-btn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 25px rgba(63, 133, 111, 0.5);
+  transition: transform 0.2s ease;
+  user-select: none;
 }
 
 .soap-floating-btn:active {
-  transform: scale(0.95);
+  cursor: grabbing;
 }
 
-.soap-floating-btn.active {
-  background: #2e6350;
-  box-shadow: 0 4px 20px rgba(46, 99, 80, 0.4);
+.soap-floating-btn.dragging {
+  transition: none;
+  cursor: grabbing;
 }
 
 .soap-btn-icon {
@@ -51,6 +31,66 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.soap-toggle-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.soap-btn-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+@keyframes soap-btn-appear {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.soap-floating-btn:hover {
+  background: #4b5563;
+}
+
+.soap-floating-btn:active {
+  transform: scale(0.95);
+}
+
+.soap-floating-btn.active {
+  background: #3F856F;
+}
+
+.soap-btn-icon {
+  position: relative;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.soap-toggle-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
 }
 
 .soap-btn-badge {

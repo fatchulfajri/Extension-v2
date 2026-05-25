@@ -441,15 +441,94 @@ function createFloatingButton() {
   button.className = 'soap-floating-btn';
   button.innerHTML = `
     <div class="soap-btn-icon">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-      </svg>
+      <img src="${chrome.runtime.getURL('assets/cmt.png')}" alt="CMT" class="soap-toggle-logo">
       <span class="soap-btn-badge" id="soap-badge" style="display: none;">0</span>
     </div>
   `;
 
-  button.addEventListener('click', toggleSidebar);
+  // Add drag functionality
+  setupDraggable(button);
+
+  button.addEventListener('click', (e) => {
+    // Only toggle if not dragging
+    if (!button.dataset.isDragging) {
+      toggleSidebar();
+    }
+  });
+
   document.body.appendChild(button);
+}
+
+function setupDraggable(element) {
+  let isDragging = false;
+  let startY = 0;
+  let startTop = 0;
+  let hasMoved = false;
+
+  const onMouseDown = (e) => {
+    isDragging = true;
+    hasMoved = false;
+    startY = e.clientY;
+    startTop = parseInt(element.style.top) || 16;
+
+    element.classList.add('dragging');
+    e.preventDefault();
+  };
+
+  const onMouseMove = (e) => {
+    if (!isDragging) return;
+
+    const deltaY = e.clientY - startY;
+
+    // Only consider it a drag if moved more than 5px
+    if (Math.abs(deltaY) > 5) {
+      hasMoved = true;
+    }
+
+    let newTop = startTop + deltaY;
+
+    // Constrain within viewport
+    const maxTop = window.innerHeight - 36 - 16;
+    const minTop = 16;
+
+    if (newTop < minTop) newTop = minTop;
+    if (newTop > maxTop) newTop = maxTop;
+
+    element.style.top = newTop + 'px';
+  };
+
+  const onMouseUp = () => {
+    if (!isDragging) return;
+
+    element.classList.remove('dragging');
+
+    if (hasMoved) {
+      element.dataset.isDragging = 'true';
+      setTimeout(() => {
+        delete element.dataset.isDragging;
+      }, 100);
+    }
+
+    isDragging = false;
+  };
+
+  // Mouse events
+  element.addEventListener('mousedown', onMouseDown);
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
+
+  // Touch events
+  element.addEventListener('touchstart', (e) => {
+    const touch = e.touches[0];
+    onMouseDown({ clientY: touch.clientY, preventDefault: () => {} });
+  });
+
+  element.addEventListener('touchmove', (e) => {
+    const touch = e.touches[0];
+    onMouseMove({ clientY: touch.clientY });
+  });
+
+  element.addEventListener('touchend', onMouseUp);
 }
 
 function toggleSidebar() {
