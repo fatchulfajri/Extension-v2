@@ -7,17 +7,20 @@
   right: 16px;
   width: 40px;
   height: 40px;
+  background: #3F856F;
+  border-radius: 50%;
   cursor: grab;
   z-index: 999989;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s ease;
+  transition: all 0.2s ease;
   user-select: none;
 }
 
 .soap-floating-btn:active {
   cursor: grabbing;
+  transform: scale(0.95);
 }
 
 .soap-floating-btn.dragging {
@@ -69,15 +72,13 @@
 }
 
 .soap-floating-btn:hover {
-  background: #4b5563;
-}
-
-.soap-floating-btn:active {
-  transform: scale(0.95);
+  background: #35725d;
+  transform: scale(1.05);
 }
 
 .soap-floating-btn.active {
-  background: #3F856F;
+  background: #35725d;
+  box-shadow: 0 4px 12px rgba(63, 133, 111, 0.3);
 }
 
 @keyframes soap-badge-pop {

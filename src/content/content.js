@@ -2,14 +2,10 @@
 // ================================================
 
 // ================================================
-// HARDCODED N8N WEBHOOK URL
+// CONSTANTS
 // ================================================
 
 const DEFAULT_N8N_URL = 'https://n8n.zapp.covwatch.net/webhook/validate-form';
-
-// ================================================
-// CONSTANTS
-// ================================================
 
 const MESSAGE_ACTIONS = {
   SEND_TO_N8N: 'sendToN8N',
@@ -30,29 +26,35 @@ const SOAP_LABELS = {
   P: 'Plan - Rencana'
 };
 
+const DEBOUNCE_DELAY = 2000;
+const DOM_CHECK_INTERVAL = 3000;
+
 // ================================================
-// STATE MANAGEMENT
+// STATE
 // ================================================
 
 const state = {
   isActive: true,
   sidebarOpen: false,
-  formData: [], // Array of form data
+  formData: [],
   corrections: { S: [], O: [], A: [], P: [] },
   debounceTimer: null,
   n8nWebhookUrl: '',
-  urlList: [], // List of allowed URLs
-  isLoading: false, // Loading state untuk N8N request
-  isFirstLoad: true, // Track first load untuk tampilan loading
-  viewMode: 'result' // 'result' mode untuk menampilkan koreksi
+  urlList: [],
+  isLoading: false,
+  isFirstLoad: true,
+  viewMode: 'result'
 };
+
+// ================================================
+// STATE FUNCTIONS
+// ================================================
 
 async function initState() {
   const settings = await chrome.storage.sync.get(['enabled', 'urlList']);
 
   console.log('SOAP Assistant - Settings loaded:', settings);
 
-  // Use hardcoded N8N URL
   state.n8nWebhookUrl = DEFAULT_N8N_URL;
   state.urlList = settings.urlList || [];
 
@@ -86,7 +88,7 @@ function clearDebounceTimer() {
 }
 
 // ================================================
-// UTILITY FUNCTIONS
+// HELPER FUNCTIONS
 // ================================================
 
 function hasCorrections() {
@@ -125,20 +127,15 @@ function getSeverityIcon(severity) {
 }
 
 // ================================================
-// FORM DATA DETECTION
+// FORM DETECTION
 // ================================================
 
-/**
- * Get label for an input element
- */
 function getElementLabel(element) {
-  // Cek label dengan for attribute
   if (element.id) {
     const label = document.querySelector(`label[for="${element.id}"]`);
     if (label) return label.textContent.trim();
   }
 
-  // Cek label di parent
   let parent = element.parentElement;
   let depth = 0;
   while (parent && depth < 3) {
@@ -150,7 +147,6 @@ function getElementLabel(element) {
     depth++;
   }
 
-  // Cek placeholder sebagai fallback
   if (element.placeholder) {
     return element.placeholder;
   }
@@ -158,9 +154,6 @@ function getElementLabel(element) {
   return '';
 }
 
-/**
- * Get value from select element
- */
 function getSelectValue(selectElement) {
   if (selectElement.type === 'select-multiple') {
     return Array.from(selectElement.selectedOptions).map(opt => opt.value).join(', ');
@@ -168,12 +161,7 @@ function getSelectValue(selectElement) {
   return selectElement.value;
 }
 
-/**
- * Check if current URL is in the allowed URL list
- * Returns true if list is empty (allow all) or if current URL matches
- */
 function isCurrentUrlInList() {
-  // If URL list is empty, don't allow any URLs
   if (!state.urlList || state.urlList.length === 0) {
     console.log('SOAP Assistant - URL list is empty');
     return false;
@@ -183,9 +171,7 @@ function isCurrentUrlInList() {
   console.log('SOAP Assistant - Current URL:', currentUrl);
   console.log('SOAP Assistant - URL List:', state.urlList);
 
-  // Check if current URL matches any URL in the list AND is enabled
   const match = state.urlList.some(item => {
-    // Skip if URL is disabled
     if (item.enabled === false) {
       console.log('SOAP Assistant - URL disabled:', item.url);
       return false;
@@ -193,19 +179,16 @@ function isCurrentUrlInList() {
 
     const allowedUrl = item.url;
 
-    // Try exact match first
     if (currentUrl === allowedUrl) {
       console.log('SOAP Assistant - URL exact match:', allowedUrl);
       return true;
     }
 
-    // Try startsWith match (for subpages)
     if (currentUrl.startsWith(allowedUrl)) {
       console.log('SOAP Assistant - URL startsWith match:', allowedUrl);
       return true;
     }
 
-    // For file:// URLs, also try decoding and comparing
     try {
       const decodedCurrent = decodeURIComponent(currentUrl);
       const decodedAllowed = decodeURIComponent(allowedUrl);
@@ -224,15 +207,11 @@ function isCurrentUrlInList() {
   return match;
 }
 
-/**
- * Check if page has any input fields (excluding search boxes)
- */
 function hasInputFields() {
   const inputs = document.querySelectorAll('input:not([type="hidden"]), textarea, select');
   let hasForm = false;
 
   inputs.forEach((element) => {
-    // Skip search inputs
     if (element.type === 'search') return;
     if (element.placeholder?.toLowerCase().includes('search')) return;
     if (element.name?.toLowerCase().includes('search')) return;
@@ -245,20 +224,12 @@ function hasInputFields() {
   return hasForm;
 }
 
-/**
- * Collect all form data from the page
- */
 function collectFormData() {
   const result = [];
-
-  // Ambil semua input, textarea, dan select
   const inputs = document.querySelectorAll('input, textarea, select');
 
   inputs.forEach((element) => {
-    // Skip elemen yang tidak memiliki name/id
     if (!element.name && !element.id) return;
-
-    // Skip hidden inputs
     if (element.type === 'hidden') return;
 
     let value = '';
@@ -278,7 +249,6 @@ function collectFormData() {
         break;
       default:
         value = element.value || '';
-        // Untuk textarea dan contenteditable
         if (element.tagName === 'TEXTAREA' || element.isContentEditable) {
           value = element.value || element.textContent || '';
         }
@@ -298,62 +268,42 @@ function collectFormData() {
   return result;
 }
 
-/**
- * Collect form data and update state
- */
-function updateFormData() {
-  state.formData = collectFormData();
-  console.log('SOAP Assistant - Form data collected:', state.formData);
-}
-
 function handleFormInput() {
-  // Debounce form data collection - kirim ke N8N setelah berhenti mengetik
   clearDebounceTimer();
   state.debounceTimer = setTimeout(() => {
-    updateFormData();
+    const formData = collectFormData();
+    state.formData = formData;
+    console.log('SOAP Assistant - Form data collected:', formData);
 
-    // Kirim otomatis ke N8N untuk analisis realtime
-    if (state.formData.length > 0) {
+    if (formData.length > 0) {
       sendToN8N();
     }
-  }, 2000); // Kirim setelah 2 detik berhenti mengetik
+  }, DEBOUNCE_DELAY);
 }
 
 function setupFormMonitoring() {
-  // Monitor semua input, textarea, select
   const inputs = document.querySelectorAll('input, textarea, select');
 
   inputs.forEach((element) => {
-    // Skip hidden inputs
     if (element.type === 'hidden') return;
 
-    // Remove existing listener
     element.removeEventListener('input', element._formHandler);
     element.removeEventListener('change', element._formHandler);
 
-    // Add new listener
     element._formHandler = handleFormInput;
     element.addEventListener('input', element._formHandler);
     element.addEventListener('change', element._formHandler);
   });
 
   // Initial collection
-  updateFormData();
+  const initialData = collectFormData();
+  state.formData = initialData;
 
   // Re-scan periodically for dynamic forms
   setTimeout(setupFormMonitoring, 2000);
 }
 
-function startSOAPMonitoring() {
-  setupFormMonitoring();
-  observeDOMChanges();
-}
-
-/**
- * Observe DOM changes untuk mendeteksi form yang muncul secara dinamis
- */
 function observeDOMChanges() {
-  // Cek form baru setiap beberapa detik
   const checkInterval = setInterval(() => {
     if (!state.isActive) {
       clearInterval(checkInterval);
@@ -363,22 +313,24 @@ function observeDOMChanges() {
     const hasBtn = document.getElementById('soap-floating-btn');
     const shouldShow = isCurrentUrlInList() && hasInputFields();
 
-    // Jika belum ada floating button dan seharusnya ada
     if (!hasBtn && shouldShow) {
       createFloatingButton();
       console.log('SOAP Assistant - Form detected, floating button created');
-    }
-    // Jika ada floating button tapi seharusnya tidak ada
-    else if (hasBtn && !shouldShow) {
+    } else if (hasBtn && !shouldShow) {
       const btn = document.getElementById('soap-floating-btn');
       btn.remove();
       console.log('SOAP Assistant - Conditions not met, floating button removed');
     }
-  }, 3000); // Cek setiap 3 detik
+  }, DOM_CHECK_INTERVAL);
+}
+
+function startSOAPMonitoring() {
+  setupFormMonitoring();
+  observeDOMChanges();
 }
 
 // ================================================
-// API CLIENT
+// N8N API CLIENT
 // ================================================
 
 async function sendToN8N() {
@@ -388,19 +340,18 @@ async function sendToN8N() {
   }
 
   try {
-    // Set loading state
     state.isLoading = true;
 
-    // Buka sidebar otomatis jika belum terbuka
+    // Open sidebar if not already open
     if (!state.sidebarOpen) {
       toggleSidebar();
     }
 
-    // Render sidebar dengan loading state (hanya jika first load)
+    // Render sidebar with loading state
     renderSidebar();
 
     // Refresh form data before sending
-    updateFormData();
+    state.formData = collectFormData();
 
     const response = await chrome.runtime.sendMessage({
       action: MESSAGE_ACTIONS.SEND_TO_N8N,
@@ -408,7 +359,6 @@ async function sendToN8N() {
       url: state.n8nWebhookUrl
     });
 
-    // Reset loading state dan first load flag
     state.isLoading = false;
     state.isFirstLoad = false;
 
@@ -426,14 +376,22 @@ async function sendToN8N() {
 }
 
 // ================================================
-// UI COMPONENTS
+// FLOATING BUTTON
 // ================================================
 
 function createFloatingButton() {
-  const existing = document.getElementById('soap-floating-btn');
-  if (existing) existing.remove();
+  console.log('SOAP Assistant - createFloatingButton called, isActive:', state.isActive);
 
-  if (!state.isActive) return;
+  const existing = document.getElementById('soap-floating-btn');
+  if (existing) {
+    console.log('SOAP Assistant - Removing existing floating button');
+    existing.remove();
+  }
+
+  if (!state.isActive) {
+    console.log('SOAP Assistant - Extension is not active, skipping button creation');
+    return;
+  }
 
   const button = document.createElement('div');
   button.id = 'soap-floating-btn';
@@ -445,17 +403,16 @@ function createFloatingButton() {
     </div>
   `;
 
-  // Add drag functionality
   setupDraggable(button);
 
   button.addEventListener('click', (e) => {
-    // Only toggle if not dragging
     if (!button.dataset.isDragging) {
       toggleSidebar();
     }
   });
 
   document.body.appendChild(button);
+  console.log('SOAP Assistant - Floating button added to DOM');
 }
 
 function setupDraggable(element) {
@@ -479,14 +436,12 @@ function setupDraggable(element) {
 
     const deltaY = e.clientY - startY;
 
-    // Only consider it a drag if moved more than 5px
     if (Math.abs(deltaY) > 5) {
       hasMoved = true;
     }
 
     let newTop = startTop + deltaY;
 
-    // Constrain within viewport
     const maxTop = window.innerHeight - 36 - 16;
     const minTop = 16;
 
@@ -530,14 +485,18 @@ function setupDraggable(element) {
   element.addEventListener('touchend', onMouseUp);
 }
 
+// ================================================
+// SIDEBAR
+// ================================================
+
 function toggleSidebar() {
-  state.sidebarOpen = !state.sidebarOpen;
+  const isOpen = !state.sidebarOpen;
+  state.sidebarOpen = isOpen;
 
   const sidebar = document.getElementById('soap-sidebar');
   const button = document.getElementById('soap-floating-btn');
 
-  if (state.sidebarOpen) {
-    // Reset first load flag saat sidebar dibuka
+  if (isOpen) {
     state.isFirstLoad = true;
     renderSidebar();
     sidebar?.classList.add('open');
@@ -556,7 +515,6 @@ function createSidebar() {
     sidebar.className = 'soap-sidebar';
     document.body.appendChild(sidebar);
 
-    // Pre-render empty sidebar untuk cold start
     sidebar.innerHTML = `
       <div class="soap-sidebar-header">
         <div class="soap-header-left">
@@ -584,19 +542,14 @@ function renderSidebar() {
   const categoriesWithCorrections = Object.entries(state.corrections)
     .filter(([_, items]) => items.length > 0);
 
-  // Tentukan konten berdasarkan state
   let contentHTML = '';
   if (state.formData.length === 0) {
-    // Belum ada isian
     contentHTML = getNoDataHTML();
   } else if (state.isLoading && state.isFirstLoad) {
-    // Sedang menganalisis - hanya tampilkan saat first load
     contentHTML = getLoadingHTML();
   } else if (totalCorrections > 0) {
-    // Ada koreksi
     contentHTML = getCorrectionsHTML(categoriesWithCorrections);
   } else {
-    // Tidak ada koreksi
     contentHTML = getEmptyStateHTML();
   }
 
@@ -744,9 +697,6 @@ function attachSidebarListeners() {
   document.getElementById('soap-dismiss-all')?.addEventListener('click', handleDismissAll);
 }
 
-/**
- * Handle dismiss all corrections
- */
 function handleDismissAll() {
   resetCorrections();
   updateBadge();
@@ -754,7 +704,7 @@ function handleDismissAll() {
 }
 
 // ================================================
-// MESSAGE HANDLING
+// MESSAGE HANDLER
 // ================================================
 
 function handleMessage(request, sender, sendResponse) {
@@ -766,7 +716,6 @@ function handleMessage(request, sender, sendResponse) {
       state.isActive = request.enabled;
 
       if (request.enabled) {
-        // Hanya buat floating button jika: URL di list DAN ada form input
         if (isCurrentUrlInList() && hasInputFields()) {
           console.log('SOAP Assistant - Creating floating button');
           createFloatingButton();
@@ -790,7 +739,6 @@ function handleMessage(request, sender, sendResponse) {
       console.log('SOAP Assistant - URL list changed:', request.urlList);
       state.urlList = request.urlList || [];
 
-      // Re-evaluate floating button visibility
       const hasBtn = document.getElementById('soap-floating-btn');
       const shouldShow = state.isActive && isCurrentUrlInList() && hasInputFields();
 
@@ -799,7 +747,7 @@ function handleMessage(request, sender, sendResponse) {
         console.log('SOAP Assistant - URL list updated, floating button created');
       } else if (hasBtn && !shouldShow) {
         const btn = document.getElementById('soap-floating-btn');
-        btn?.remove();
+        btn.remove();
         console.log('SOAP Assistant - URL list updated, floating button removed');
       }
       break;
@@ -817,6 +765,11 @@ chrome.runtime.onMessage.addListener(handleMessage);
 async function init() {
   await initState();
 
+  console.log('SOAP Assistant - Checking conditions:');
+  console.log('  - isActive:', state.isActive);
+  console.log('  - isCurrentUrlInList:', isCurrentUrlInList());
+  console.log('  - hasInputFields:', hasInputFields());
+
   // Pre-create sidebar elements (cold start optimization)
   createSidebar();
 
@@ -825,12 +778,18 @@ async function init() {
   // 2. URL saat ini ada di dalam URL list
   // 3. Halaman memiliki form input (bukan search)
   if (state.isActive && isCurrentUrlInList() && hasInputFields()) {
+    console.log('SOAP Assistant - All conditions met, creating floating button');
     createFloatingButton();
+  } else {
+    console.log('SOAP Assistant - Floating button NOT created. Check the conditions above.');
+    console.log('SOAP Assistant - Please add this URL to the extension popup if not listed.');
   }
 
+  // Start monitoring
   startSOAPMonitoring();
 
   console.log('SOAP Assistant - Initialized');
 }
 
+// Start the extension
 init();
