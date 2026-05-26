@@ -92,6 +92,37 @@
   background: #a1a1a1;
 }
 
+/* Info Banner */
+.soap-info-banner {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-left: 4px solid #3F856F;
+  color: #166534;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+}
+
+.soap-info-banner-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.soap-info-banner-title svg {
+  width: 16px;
+  height: 16px;
+}
+
+.soap-info-banner-text {
+  font-size: 12px;
+  opacity: 0.9;
+  line-height: 1.5;
+}
+
 /* Empty State */
 .soap-empty-state {
   text-align: center;

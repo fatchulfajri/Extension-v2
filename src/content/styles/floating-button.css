@@ -7,7 +7,6 @@
   right: 16px;
   width: 40px;
   height: 40px;
-  background: #3F856F;
   border-radius: 50%;
   cursor: grab;
   z-index: 999989;
@@ -72,8 +71,7 @@
 }
 
 .soap-floating-btn:hover {
-  background: #35725d;
-  transform: scale(1.05);
+  transform: scale(1.15);
 }
 
 .soap-floating-btn.active {
