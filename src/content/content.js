@@ -6,6 +6,7 @@
 // ================================================
 
 const DEFAULT_N8N_URL = 'https://risetmerahputih.app.n8n.cloud/webhook-test/soap';
+const DEFAULT_WRITING_URL = 'https://risetmerahputih.app.n8n.cloud/webhook-test/writing';
 
 const MESSAGE_ACTIONS = {
   SEND_TO_N8N: 'sendToN8N',
@@ -38,12 +39,16 @@ const state = {
   sidebarOpen: false,
   formData: [],
   corrections: { S: [], O: [], A: [], P: [] },
+  writingRecommendations: [], // New state for writing improvements
   debounceTimer: null,
   n8nWebhookUrl: '',
+  writingWebhookUrl: '', // Separate webhook for writing improvements
   urlList: [],
   isLoading: false,
+  isLoadingWriting: false, // Loading state for writing improvements
   isFirstLoad: true,
   viewMode: 'result',
+  activeTab: 'corrections', // New: 'corrections' or 'writing'
   apiStatus: null, // For storing status like 'no_knowledge'
   apiMessage: null // For storing the message from API
 };
@@ -58,6 +63,7 @@ async function initState() {
   console.log('SOAP Assistant - Settings loaded:', settings);
 
   state.n8nWebhookUrl = DEFAULT_N8N_URL;
+  state.writingWebhookUrl = DEFAULT_WRITING_URL;
   state.urlList = settings.urlList || [];
 
   console.log('SOAP Assistant - N8N URL:', state.n8nWebhookUrl);
@@ -80,6 +86,7 @@ async function initState() {
 
 function resetCorrections() {
   state.corrections = { S: [], O: [], A: [], P: [] };
+  state.writingRecommendations = [];
   state.apiStatus = null;
   state.apiMessage = null;
 }
@@ -104,7 +111,9 @@ function getTotalCorrections() {
 }
 
 function updateBadge() {
-  const total = getTotalCorrections();
+  const soapTotal = getTotalCorrections();
+  const writingTotal = state.writingRecommendations.length;
+  const total = soapTotal + writingTotal;
   const badge = document.getElementById('soap-badge');
 
   if (badge) {
@@ -388,6 +397,117 @@ async function sendToN8N() {
   }
 }
 
+async function sendToN8NWriting() {
+  if (!state.writingWebhookUrl) {
+    console.log('SOAP Assistant: Writing N8N URL not configured');
+    return;
+  }
+
+  try {
+    state.isLoadingWriting = true;
+
+    // Refresh form data before sending
+    state.formData = collectFormData();
+
+    const response = await chrome.runtime.sendMessage({
+      action: 'sendToN8NWriting',
+      data: state.formData,
+      url: state.writingWebhookUrl
+    });
+
+    state.isLoadingWriting = false;
+
+    if (response && response.recommendations) {
+      state.writingRecommendations = response.recommendations;
+    } else {
+      state.writingRecommendations = [];
+    }
+
+    renderSidebar();
+  } catch (error) {
+    console.error('SOAP Assistant Writing Error:', error);
+    state.isLoadingWriting = false;
+    renderSidebar();
+  }
+}
+
+function acceptWritingRecommendation(recommendation) {
+  // Find the form element and update its value
+  const { fieldId, fieldName, correctedValue } = recommendation;
+
+  let element = null;
+
+  // Try to find element by ID first
+  if (fieldId) {
+    element = document.getElementById(fieldId);
+  }
+
+  // If not found, try to find by name
+  if (!element && fieldName) {
+    element = document.querySelector(`[name="${fieldName}"]`);
+  }
+
+  // If still not found, try to find by partial match in current formData
+  if (!element) {
+    const formData = collectFormData();
+    const matchedField = formData.find(field => {
+      return (field.id === fieldId || field.name === fieldName) &&
+             field.value === recommendation.originalValue;
+    });
+
+    if (matchedField && matchedField.id) {
+      element = document.getElementById(matchedField.id);
+    } else if (matchedField && matchedField.name) {
+      element = document.querySelector(`[name="${matchedField.name}"]`);
+    }
+  }
+
+  if (element) {
+    // Update the element value
+    if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || element.tagName === 'SELECT') {
+      element.value = correctedValue;
+
+      // Trigger input and change events to ensure the page recognizes the change
+      element.dispatchEvent(new Event('input', { bubbles: true }));
+      element.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    // Remove this recommendation from the list
+    state.writingRecommendations = state.writingRecommendations.filter(
+      r => r !== recommendation
+    );
+
+    // Re-render sidebar
+    renderSidebar();
+
+    // Show success feedback
+    showNotification('Perbaikan diterapkan!');
+  } else {
+    showNotification('Elemen tidak ditemukan', 'error');
+  }
+}
+
+function showNotification(message, type = 'success') {
+  const existing = document.getElementById('soap-notification');
+  if (existing) existing.remove();
+
+  const notification = document.createElement('div');
+  notification.id = 'soap-notification';
+  notification.className = `soap-notification soap-${type}`;
+  notification.textContent = message;
+
+  document.body.appendChild(notification);
+
+  setTimeout(() => {
+    notification.classList.add('show');
+  }, 10);
+
+  setTimeout(() => {
+    notification.classList.remove('show');
+    setTimeout(() => notification.remove(), 300);
+  }, 2000);
+}
+
 // ================================================
 // FLOATING BUTTON
 // ================================================
@@ -555,17 +675,29 @@ function renderSidebar() {
   const categoriesWithCorrections = Object.entries(state.corrections)
     .filter(([_, items]) => items.length > 0);
 
+  const totalWriting = state.writingRecommendations.length;
+
   let contentHTML = '';
   if (state.formData.length === 0) {
     contentHTML = getNoDataHTML();
-  } else if (state.isLoading && state.isFirstLoad) {
-    contentHTML = getLoadingHTML();
-  } else if (state.apiStatus === 'no_knowledge') {
-    contentHTML = getNoKnowledgeHTML();
-  } else if (totalCorrections > 0) {
-    contentHTML = getCorrectionsHTML(categoriesWithCorrections);
+  } else if (state.activeTab === 'writing') {
+    if (state.isLoadingWriting) {
+      contentHTML = getLoadingHTML('Sedang menganalisis penulisan...', 'Mohon tunggu sebentar');
+    } else if (totalWriting > 0) {
+      contentHTML = getWritingRecommendationsHTML();
+    } else {
+      contentHTML = getWritingEmptyHTML();
+    }
   } else {
-    contentHTML = getEmptyStateHTML();
+    if (state.isLoading && state.isFirstLoad) {
+      contentHTML = getLoadingHTML();
+    } else if (state.apiStatus === 'no_knowledge') {
+      contentHTML = getNoKnowledgeHTML();
+    } else if (totalCorrections > 0) {
+      contentHTML = getCorrectionsHTML(categoriesWithCorrections);
+    } else {
+      contentHTML = getEmptyStateHTML();
+    }
   }
 
   sidebar.innerHTML = `
@@ -580,14 +712,44 @@ function renderSidebar() {
       </button>
     </div>
 
+    ${state.formData.length > 0 ? `
+      <div class="soap-tabs">
+        <button class="soap-tab ${state.activeTab === 'corrections' ? 'active' : ''}" data-tab="corrections">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 11l3 3L22 4"/>
+            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+          </svg>
+          Koreksi SOAP
+          ${totalCorrections > 0 ? `<span class="soap-tab-badge">${totalCorrections}</span>` : ''}
+        </button>
+        <button class="soap-tab ${state.activeTab === 'writing' ? 'active' : ''}" data-tab="writing">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+          Perbaikan Penulisan
+          ${totalWriting > 0 ? `<span class="soap-tab-badge">${totalWriting}</span>` : ''}
+        </button>
+      </div>
+    ` : ''}
+
     <div class="soap-sidebar-content">
       ${contentHTML}
     </div>
 
     <div class="soap-sidebar-footer">
-      ${state.formData.length > 0 && totalCorrections > 0 ? `
+      ${state.formData.length > 0 && state.activeTab === 'corrections' && totalCorrections > 0 ? `
         <button class="soap-dismiss-all-btn" id="soap-dismiss-all">
           Tutup Semua
+        </button>
+      ` : ''}
+      ${state.formData.length > 0 && state.activeTab === 'writing' && totalWriting > 0 ? `
+        <button class="soap-refresh-btn" id="soap-refresh-writing">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 4v6h-6M1 20v-6h6"/>
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+          Analisis Ulang
         </button>
       ` : ''}
     </div>
@@ -596,14 +758,14 @@ function renderSidebar() {
   attachSidebarListeners();
 }
 
-function getLoadingHTML() {
+function getLoadingHTML(title = 'Sedang menganalisis...', hint = 'Mohon tunggu sebentar') {
   return `
     <div class="soap-loading-state">
       <svg class="soap-spinner" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3F856F" stroke-width="2">
         <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="32" style="animation: soap-spin 1.5s linear infinite;"/>
       </svg>
-      <p class="soap-loading-title">Sedang menganalisis...</p>
-      <p class="soap-loading-hint">Mohon tunggu sebentar</p>
+      <p class="soap-loading-title">${title}</p>
+      <p class="soap-loading-hint">${hint}</p>
     </div>
     <style>
       @keyframes soap-spin {
@@ -677,6 +839,86 @@ function getNoDataHTML() {
   `;
 }
 
+function getWritingRecommendationsHTML() {
+  return `
+    <div class="soap-info-banner soap-writing-banner">
+      <div class="soap-info-banner-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        Rekomendasi Perbaikan Penulisan
+      </div>
+      <div class="soap-info-banner-text">
+        Berikut adalah saran perbaikan penulisan (singkatan, typo, dll).
+      </div>
+    </div>
+
+    <div class="soap-writing-list">
+      ${state.writingRecommendations.map((rec, index) => `
+        <div class="soap-writing-item">
+          <div class="soap-writing-header">
+            <span class="soap-writing-field">${rec.fieldLabel || rec.fieldName || rec.fieldId || 'Field'}</span>
+          </div>
+
+          <div class="soap-writing-comparison">
+            <div class="soap-writing-original">
+              <span class="soap-writing-label">Asli:</span>
+              <span class="soap-writing-value">${rec.originalValue}</span>
+            </div>
+            <svg class="soap-writing-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="5" y1="12" x2="19" y2="12"/>
+              <polyline points="12 5 19 12 12 19"/>
+            </svg>
+            <div class="soap-writing-corrected">
+              <span class="soap-writing-label">Perbaikan:</span>
+              <span class="soap-writing-value soap-highlight">${rec.correctedValue}</span>
+            </div>
+          </div>
+
+          ${rec.reason ? `
+            <div class="soap-writing-reason">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+              ${rec.reason}
+            </div>
+          ` : ''}
+
+          <button class="soap-accept-btn" data-index="${index}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Terapkan Perbaikan
+          </button>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function getWritingEmptyHTML() {
+  return `
+    <div class="soap-empty-state">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#3F856F" stroke-width="2">
+        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+      </svg>
+      <p class="soap-empty-title">Analisis Penulisan</p>
+      <p class="soap-preview-hint">Klik tombol di bawah untuk menganalisis penulisan</p>
+      <button class="soap-analyze-btn" id="soap-analyze-writing">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        Analisis Penulisan
+      </button>
+    </div>
+  `;
+}
+
 function getCorrectionsHTML(categoriesWithCorrections) {
   return `
     <div class="soap-info-banner">
@@ -738,6 +980,42 @@ function getCorrectionItemHTML(item) {
 function attachSidebarListeners() {
   document.getElementById('soap-close-sidebar')?.addEventListener('click', toggleSidebar);
   document.getElementById('soap-dismiss-all')?.addEventListener('click', handleDismissAll);
+
+  // Tab switching
+  document.querySelectorAll('.soap-tab').forEach(tab => {
+    tab.addEventListener('click', (e) => {
+      const tabName = e.currentTarget.dataset.tab;
+      state.activeTab = tabName;
+
+      // If switching to writing tab and no recommendations yet, fetch them
+      if (tabName === 'writing' && state.writingRecommendations.length === 0 && !state.isLoadingWriting) {
+        sendToN8NWriting();
+      }
+
+      renderSidebar();
+    });
+  });
+
+  // Refresh writing button
+  document.getElementById('soap-refresh-writing')?.addEventListener('click', () => {
+    sendToN8NWriting();
+  });
+
+  // Analyze writing button
+  document.getElementById('soap-analyze-writing')?.addEventListener('click', () => {
+    sendToN8NWriting();
+  });
+
+  // Accept recommendation buttons
+  document.querySelectorAll('.soap-accept-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const index = parseInt(e.currentTarget.dataset.index);
+      const recommendation = state.writingRecommendations[index];
+      if (recommendation) {
+        acceptWritingRecommendation(recommendation);
+      }
+    });
+  });
 }
 
 function handleDismissAll() {

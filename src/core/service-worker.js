@@ -34,6 +34,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true; // Keep message channel open for async response
 
+    case 'sendToN8NWriting':
+      handleSendToN8NWriting(request)
+        .then(response => sendResponse({ success: true, ...response }))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
+
     case MESSAGE_ACTIONS.SAVE_SETTINGS:
       handleSaveSettings(request)
         .then(() => sendResponse({ success: true }))
@@ -53,6 +59,65 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
  */
 async function handleSendToN8N(request) {
   return await sendToN8N(request.url, request.data);
+}
+
+/**
+ * Handle send to N8N writing analysis request
+ */
+async function handleSendToN8NWriting(request) {
+  try {
+    const response = await fetch(request.url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        formData: request.data,
+        timestamp: new Date().toISOString(),
+        source: 'chrome-extension',
+        type: 'writing_analysis'
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`N8N responded with status: ${response.status}`);
+    }
+
+    const text = await response.text();
+    if (!text || text.trim() === '') {
+      return { recommendations: [] };
+    }
+
+    const result = JSON.parse(text);
+
+    // Handle different response formats from n8n
+    if (result.recommendations && Array.isArray(result.recommendations)) {
+      return { recommendations: result.recommendations };
+    }
+
+    // Alternative format: array of recommendations directly
+    if (Array.isArray(result)) {
+      return { recommendations: result };
+    }
+
+    // Format with hasil_analisis array
+    if (result.hasil_analisis && Array.isArray(result.hasil_analisis)) {
+      const recommendations = result.hasil_analisis.map(item => ({
+        fieldId: item.field_id || item.fieldId || '',
+        fieldName: item.field_name || item.fieldName || '',
+        fieldLabel: item.field_label || item.fieldLabel || '',
+        originalValue: item.original_value || item.originalValue || '',
+        correctedValue: item.corrected_value || item.correctedValue || '',
+        reason: item.reason || item.alasan || ''
+      }));
+      return { recommendations };
+    }
+
+    return { recommendations: [] };
+  } catch (error) {
+    console.error('SOAP Assistant - Writing N8N Error:', error);
+    return { recommendations: [] };
+  }
 }
 
 /**
