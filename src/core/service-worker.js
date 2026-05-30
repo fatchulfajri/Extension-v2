@@ -30,7 +30,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   switch (request.action) {
     case MESSAGE_ACTIONS.SEND_TO_N8N:
       handleSendToN8N(request)
-        .then(response => sendResponse({ success: true, corrections: response }))
+        .then(response => sendResponse({ success: true, ...response }))
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true; // Keep message channel open for async response
 

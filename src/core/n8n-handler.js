@@ -50,6 +50,19 @@ export async function sendToN8N(url, soapData) {
  * @returns {Object} - Formatted corrections
  */
 function formatN8NResponse(result) {
+  // Handle status response like no_knowledge
+  // {
+  //   status: "no_knowledge",
+  //   message: "Sistem tidak memiliki pengetahuan assessment ini"
+  // }
+  if (result.status === 'no_knowledge' || result.status === 'error') {
+    return {
+      status: result.status,
+      message: result.message || 'Terjadi kesalahan',
+      corrections: getEmptyCorrections()
+    };
+  }
+
   // Handle new format from n8n webhook:
   // {
   //   hasil_analisis: [

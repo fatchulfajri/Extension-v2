@@ -5,7 +5,7 @@
 // CONSTANTS
 // ================================================
 
-const DEFAULT_N8N_URL = 'https://n8n.zapp.covwatch.net/webhook/validate-form';
+const DEFAULT_N8N_URL = 'https://risetmerahputih.app.n8n.cloud/webhook-test/soap';
 
 const MESSAGE_ACTIONS = {
   SEND_TO_N8N: 'sendToN8N',
@@ -43,7 +43,9 @@ const state = {
   urlList: [],
   isLoading: false,
   isFirstLoad: true,
-  viewMode: 'result'
+  viewMode: 'result',
+  apiStatus: null, // For storing status like 'no_knowledge'
+  apiMessage: null // For storing the message from API
 };
 
 // ================================================
@@ -78,6 +80,8 @@ async function initState() {
 
 function resetCorrections() {
   state.corrections = { S: [], O: [], A: [], P: [] };
+  state.apiStatus = null;
+  state.apiMessage = null;
 }
 
 function clearDebounceTimer() {
@@ -362,8 +366,17 @@ async function sendToN8N() {
     state.isLoading = false;
     state.isFirstLoad = false;
 
-    if (response && response.corrections) {
+    if (response && response.status) {
+      // Handle special statuses like 'no_knowledge' or 'error'
+      state.apiStatus = response.status;
+      state.apiMessage = response.message || 'Terjadi kesalahan';
+      state.corrections = response.corrections || { S: [], O: [], A: [], P: [] };
+      updateBadge();
+      renderSidebar();
+    } else if (response && response.corrections) {
       state.corrections = response.corrections;
+      state.apiStatus = null;
+      state.apiMessage = null;
       updateBadge();
       renderSidebar();
     }
@@ -547,6 +560,8 @@ function renderSidebar() {
     contentHTML = getNoDataHTML();
   } else if (state.isLoading && state.isFirstLoad) {
     contentHTML = getLoadingHTML();
+  } else if (state.apiStatus === 'no_knowledge') {
+    contentHTML = getNoKnowledgeHTML();
   } else if (totalCorrections > 0) {
     contentHTML = getCorrectionsHTML(categoriesWithCorrections);
   } else {
@@ -632,6 +647,20 @@ function getEmptyStateHTML() {
       </svg>
       <p class="soap-empty-title">Dokumen terlihat baik!</p>
       <p class="soap-preview-hint">Tidak ada koreksi yang diperlukan</p>
+    </div>
+  `;
+}
+
+function getNoKnowledgeHTML() {
+  return `
+    <div class="soap-empty-state">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#EAB308" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <p class="soap-empty-title">Informasi</p>
+      <p class="soap-preview-hint">${state.apiMessage || 'Tidak ada informasi tersedia'}</p>
     </div>
   `;
 }
