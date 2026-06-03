@@ -5,7 +5,7 @@
 // CONSTANTS
 // ================================================
 
-const DEFAULT_N8N_URL = 'https://risetmerahputih.app.n8n.cloud/webhook-test/soap';
+const DEFAULT_N8N_URL = 'https://n8n.zapp.covwatch.net/webhook/soap';
 const DEFAULT_WRITING_URL = 'https://risetmerahputih.app.n8n.cloud/webhook-test/writing';
 
 const MESSAGE_ACTIONS = {
@@ -49,8 +49,9 @@ const state = {
   isFirstLoad: true,
   viewMode: 'result',
   activeTab: 'corrections', // New: 'corrections' or 'writing'
-  apiStatus: null, // For storing status like 'no_knowledge'
-  apiMessage: null // For storing the message from API
+  apiStatus: null, // For storing status like 'no_knowledge', 'error'
+  apiMessage: null, // For storing the message from API
+  apiReason: null // For storing the reason from API (for error status)
 };
 
 // ================================================
@@ -89,6 +90,7 @@ function resetCorrections() {
   state.writingRecommendations = [];
   state.apiStatus = null;
   state.apiMessage = null;
+  state.apiReason = null;
 }
 
 function clearDebounceTimer() {
@@ -352,8 +354,11 @@ async function sendToN8N() {
     return;
   }
 
+  console.log('SOAP Assistant - sendToN8N called, URL:', state.n8nWebhookUrl);
+
   try {
     state.isLoading = true;
+    console.log('SOAP Assistant - isLoading set to true');
 
     // Open sidebar if not already open
     if (!state.sidebarOpen) {
@@ -362,31 +367,67 @@ async function sendToN8N() {
 
     // Render sidebar with loading state
     renderSidebar();
+    console.log('SOAP Assistant - Sidebar rendered with loading state');
 
     // Refresh form data before sending
     state.formData = collectFormData();
 
+    console.log('SOAP Assistant - Sending message to service worker...');
     const response = await chrome.runtime.sendMessage({
       action: MESSAGE_ACTIONS.SEND_TO_N8N,
       data: state.formData,
       url: state.n8nWebhookUrl
     });
 
+    console.log('SOAP Assistant - ✓ Response received from service worker!');
+    console.log('SOAP Assistant - Response structure:', {
+      hasSuccess: !!response?.success,
+      hasStatus: !!response?.status,
+      hasS: !!response?.S,
+      hasO: !!response?.O,
+      hasA: !!response?.A,
+      hasP: !!response?.P,
+      hasCorrectionsKey: !!response?.corrections,
+      keys: response ? Object.keys(response) : 'null'
+    });
+
     state.isLoading = false;
     state.isFirstLoad = false;
 
+    console.log('SOAP Assistant - Response from service worker:', response);
+
     if (response && response.status) {
       // Handle special statuses like 'no_knowledge' or 'error'
+      console.log('SOAP Assistant - Handling status response:', response.status);
       state.apiStatus = response.status;
       state.apiMessage = response.message || 'Terjadi kesalahan';
+      state.apiReason = response.reason || '';
       state.corrections = response.corrections || { S: [], O: [], A: [], P: [] };
+      console.log('SOAP Assistant - Status response, corrections:', state.corrections);
       updateBadge();
       renderSidebar();
-    } else if (response && response.corrections) {
-      state.corrections = response.corrections;
+      console.log('SOAP Assistant - ✓ Sidebar updated with status');
+    } else if (response && (response.S || response.O || response.A || response.P || response.corrections)) {
+      // Handle normal response - either direct corrections object or wrapped in 'corrections' key
+      console.log('SOAP Assistant - Handling normal response with corrections');
+      state.corrections = response.corrections || { S: response.S || [], O: response.O || [], A: response.A || [], P: response.P || [] };
+      console.log('SOAP Assistant - Corrections response, corrections:', state.corrections);
+      console.log('SOAP Assistant - Total corrections:', getTotalCorrections());
       state.apiStatus = null;
       state.apiMessage = null;
+      state.apiReason = null;
       updateBadge();
+      renderSidebar();
+      console.log('SOAP Assistant - ✓ Sidebar updated with corrections');
+    } else {
+      console.warn('SOAP Assistant - Response received but no corrections found!');
+      console.warn('SOAP Assistant - Response was:', response);
+      // Show notification to user
+      showNotification('Tidak ada koreksi ditemukan atau response kosong', 'warning');
+      // Still update to show empty state
+      state.apiStatus = null;
+      state.apiMessage = null;
+      state.apiReason = null;
       renderSidebar();
     }
   } catch (error) {
@@ -689,8 +730,10 @@ function renderSidebar() {
       contentHTML = getWritingEmptyHTML();
     }
   } else {
-    if (state.isLoading && state.isFirstLoad) {
+    if (state.isLoading) {
       contentHTML = getLoadingHTML();
+    } else if (state.apiStatus === 'error') {
+      contentHTML = getErrorHTML();
     } else if (state.apiStatus === 'no_knowledge') {
       contentHTML = getNoKnowledgeHTML();
     } else if (totalCorrections > 0) {
@@ -758,7 +801,7 @@ function renderSidebar() {
   attachSidebarListeners();
 }
 
-function getLoadingHTML(title = 'Sedang menganalisis...', hint = 'Mohon tunggu sebentar') {
+function getLoadingHTML(title = 'Sedang menganalisis SOAP...', hint = 'Mohon tunggu, proses mungkin memakan waktu 1-2 menit') {
   return `
     <div class="soap-loading-state">
       <svg class="soap-spinner" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3F856F" stroke-width="2">
@@ -823,6 +866,24 @@ function getNoKnowledgeHTML() {
       </svg>
       <p class="soap-empty-title">Informasi</p>
       <p class="soap-preview-hint">${state.apiMessage || 'Tidak ada informasi tersedia'}</p>
+    </div>
+  `;
+}
+
+function getErrorHTML() {
+  const reason = state.apiReason || 'Terjadi kesalahan';
+  const message = state.apiMessage || 'Silakan coba lagi atau periksa koneksi Anda.';
+
+  return `
+    <div class="soap-error-state">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="15" y1="9" x2="9" y2="15"/>
+        <line x1="9" y1="9" x2="15" y2="15"/>
+      </svg>
+      <p class="soap-error-title">Error</p>
+      <p class="soap-error-reason">${reason}</p>
+      <p class="soap-error-message">${message}</p>
     </div>
   `;
 }

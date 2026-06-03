@@ -20,45 +20,20 @@ function initializeSettings() {
   });
 }
 
-initializeSettings();
-
 // ================================================
-// MESSAGE HANDLING
+// HANDLER FUNCTIONS
 // ================================================
-
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  switch (request.action) {
-    case MESSAGE_ACTIONS.SEND_TO_N8N:
-      handleSendToN8N(request)
-        .then(response => sendResponse({ success: true, ...response }))
-        .catch(error => sendResponse({ success: false, error: error.message }));
-      return true; // Keep message channel open for async response
-
-    case 'sendToN8NWriting':
-      handleSendToN8NWriting(request)
-        .then(response => sendResponse({ success: true, ...response }))
-        .catch(error => sendResponse({ success: false, error: error.message }));
-      return true;
-
-    case MESSAGE_ACTIONS.SAVE_SETTINGS:
-      handleSaveSettings(request)
-        .then(() => sendResponse({ success: true }))
-        .catch(error => sendResponse({ success: false, error: error.message }));
-      return true;
-
-    case MESSAGE_ACTIONS.GET_SETTINGS:
-      handleGetSettings()
-        .then(settings => sendResponse(settings))
-        .catch(error => sendResponse({ success: false, error: error.message }));
-      return true;
-  }
-});
 
 /**
  * Handle send to N8N request
  */
 async function handleSendToN8N(request) {
-  return await sendToN8N(request.url, request.data);
+  console.log('Service Worker - handleSendToN8N called');
+  console.log('Service Worker - URL:', request.url);
+  console.log('Service Worker - Data items:', request.data?.length || 0);
+  const result = await sendToN8N(request.url, request.data);
+  console.log('Service Worker - sendToN8N returned:', result);
+  return result;
 }
 
 /**
@@ -143,6 +118,55 @@ async function handleGetSettings() {
     });
   });
 }
+
+// ================================================
+// MESSAGE HANDLING
+// ================================================
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log('Service Worker - Message received:', request.action);
+
+  switch (request.action) {
+    case MESSAGE_ACTIONS.SEND_TO_N8N:
+      console.log('Service Worker - Handling SEND_TO_N8N');
+      handleSendToN8N(request)
+        .then(response => {
+          console.log('Service Worker - N8N response received, sending back:', response);
+          const result = { success: true, ...response };
+          console.log('Service Worker - Final response to send:', result);
+          sendResponse(result);
+        })
+        .catch(error => {
+          console.error('Service Worker - N8N error:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+      return true; // Keep message channel open for async response
+
+    case 'sendToN8NWriting':
+      handleSendToN8NWriting(request)
+        .then(response => sendResponse({ success: true, ...response }))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
+
+    case MESSAGE_ACTIONS.SAVE_SETTINGS:
+      handleSaveSettings(request)
+        .then(() => sendResponse({ success: true }))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
+
+    case MESSAGE_ACTIONS.GET_SETTINGS:
+      handleGetSettings()
+        .then(settings => sendResponse(settings))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
+  }
+});
+
+// ================================================
+// STARTUP
+// ================================================
+
+initializeSettings();
 
 // ================================================
 // EVENT LISTENERS
