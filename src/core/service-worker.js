@@ -60,10 +60,24 @@ async function handleSendToN8NWriting(request) {
 
     const text = await response.text();
     if (!text || text.trim() === '') {
-      return { recommendations: [] };
+      return { recommendations: [], rawOutput: '' };
     }
 
-    const result = JSON.parse(text);
+    console.log('SOAP Assistant - Writing N8N Response text:', text);
+
+    // Try to parse as JSON
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch (e) {
+      // If not JSON, treat as raw text output
+      console.log('SOAP Assistant - Response is not JSON, treating as raw text');
+      return {
+        recommendations: [],
+        rawOutput: text,
+        isRawText: true
+      };
+    }
 
     // Handle different response formats from n8n
     if (result.recommendations && Array.isArray(result.recommendations)) {
@@ -88,10 +102,15 @@ async function handleSendToN8NWriting(request) {
       return { recommendations };
     }
 
-    return { recommendations: [] };
+    // If JSON doesn't match expected format, stringify as raw output
+    return {
+      recommendations: [],
+      rawOutput: JSON.stringify(result, null, 2),
+      isRawText: true
+    };
   } catch (error) {
     console.error('SOAP Assistant - Writing N8N Error:', error);
-    return { recommendations: [] };
+    return { recommendations: [], error: error.message };
   }
 }
 

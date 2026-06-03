@@ -159,6 +159,53 @@
   color: #718096;
 }
 
+/* Error State */
+.soap-error-state {
+  text-align: center;
+  padding: 60px 24px;
+  color: #dc2626;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  background: #fef2f2;
+  border-radius: 12px;
+  margin: 20px 0;
+}
+
+.soap-error-state svg {
+  margin-bottom: 24px;
+  opacity: 0.9;
+}
+
+.soap-error-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #dc2626;
+  margin: 0 0 12px 0;
+}
+
+.soap-error-reason {
+  font-size: 14px;
+  font-weight: 500;
+  color: #991b1b;
+  margin: 0 0 8px 0;
+  padding: 6px 12px;
+  background: #fee2e2;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.soap-error-message {
+  font-size: 13px;
+  color: #7f1d1d;
+  margin: 0;
+  line-height: 1.6;
+  max-width: 300px;
+}
+
 /* Summary Badges */
 .soap-summary {
   display: flex;
@@ -606,6 +653,57 @@
 }
 
 .soap-refresh-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ================================================ */
+/* RAW OUTPUT DISPLAY */
+/* ================================================ */
+
+.soap-raw-output-container {
+  background: #f7fafc;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 16px;
+}
+
+.soap-raw-output-content {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1a202c;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.soap-copy-btn-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.soap-copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #3b82f6;
+  color: white;
+}
+
+.soap-copy-btn:hover {
+  background: #2563eb;
+}
+
+.soap-copy-btn svg {
   width: 16px;
   height: 16px;
 }

@@ -6,7 +6,7 @@
 // ================================================
 
 const DEFAULT_N8N_URL = 'https://n8n.zapp.covwatch.net/webhook/soap';
-const DEFAULT_WRITING_URL = 'https://risetmerahputih.app.n8n.cloud/webhook-test/writing';
+const DEFAULT_WRITING_URL = 'https://n8n.zapp.covwatch.net/webhook/soap-correction';
 
 const MESSAGE_ACTIONS = {
   SEND_TO_N8N: 'sendToN8N',
@@ -40,6 +40,8 @@ const state = {
   formData: [],
   corrections: { S: [], O: [], A: [], P: [] },
   writingRecommendations: [], // New state for writing improvements
+  writingRawOutput: '', // Raw text output from n8n
+  isRawOutput: false, // Flag to indicate if output is raw text
   debounceTimer: null,
   n8nWebhookUrl: '',
   writingWebhookUrl: '', // Separate webhook for writing improvements
@@ -88,6 +90,8 @@ async function initState() {
 function resetCorrections() {
   state.corrections = { S: [], O: [], A: [], P: [] };
   state.writingRecommendations = [];
+  state.writingRawOutput = '';
+  state.isRawOutput = false;
   state.apiStatus = null;
   state.apiMessage = null;
   state.apiReason = null;
@@ -115,7 +119,8 @@ function getTotalCorrections() {
 function updateBadge() {
   const soapTotal = getTotalCorrections();
   const writingTotal = state.writingRecommendations.length;
-  const total = soapTotal + writingTotal;
+  const hasRawOutput = state.writingRawOutput ? 1 : 0;
+  const total = soapTotal + writingTotal + hasRawOutput;
   const badge = document.getElementById('soap-badge');
 
   if (badge) {
@@ -458,10 +463,19 @@ async function sendToN8NWriting() {
 
     state.isLoadingWriting = false;
 
-    if (response && response.recommendations) {
+    if (response && response.recommendations && Array.isArray(response.recommendations)) {
       state.writingRecommendations = response.recommendations;
+      state.writingRawOutput = '';
+      state.isRawOutput = false;
+    } else if (response && response.rawOutput) {
+      // Handle raw text output from n8n
+      state.writingRawOutput = response.rawOutput;
+      state.isRawOutput = response.isRawText !== false;
+      state.writingRecommendations = [];
     } else {
       state.writingRecommendations = [];
+      state.writingRawOutput = '';
+      state.isRawOutput = false;
     }
 
     renderSidebar();
@@ -724,6 +738,8 @@ function renderSidebar() {
   } else if (state.activeTab === 'writing') {
     if (state.isLoadingWriting) {
       contentHTML = getLoadingHTML('Sedang menganalisis penulisan...', 'Mohon tunggu sebentar');
+    } else if (state.isRawOutput && state.writingRawOutput) {
+      contentHTML = getWritingRawOutputHTML();
     } else if (totalWriting > 0) {
       contentHTML = getWritingRecommendationsHTML();
     } else {
@@ -771,7 +787,7 @@ function renderSidebar() {
             <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
           </svg>
           Perbaikan Penulisan
-          ${totalWriting > 0 ? `<span class="soap-tab-badge">${totalWriting}</span>` : ''}
+          ${(totalWriting > 0 || state.isRawOutput) ? `<span class="soap-tab-badge">${totalWriting > 0 ? totalWriting : '•'}</span>` : ''}
         </button>
       </div>
     ` : ''}
@@ -786,7 +802,7 @@ function renderSidebar() {
           Tutup Semua
         </button>
       ` : ''}
-      ${state.formData.length > 0 && state.activeTab === 'writing' && totalWriting > 0 ? `
+      ${state.formData.length > 0 && state.activeTab === 'writing' && (totalWriting > 0 || state.isRawOutput) ? `
         <button class="soap-refresh-btn" id="soap-refresh-writing">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M23 4v6h-6M1 20v-6h6"/>
@@ -980,6 +996,42 @@ function getWritingEmptyHTML() {
   `;
 }
 
+function getWritingRawOutputHTML() {
+  // Format the raw output to display nicely
+  const formattedOutput = state.writingRawOutput
+    .replace(/\n/g, '<br>')
+    .replace(/•/g, '&bull;');
+
+  return `
+    <div class="soap-info-banner soap-writing-banner">
+      <div class="soap-info-banner-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        Hasil Analisis Penulisan
+      </div>
+      <div class="soap-info-banner-text">
+        Berikut adalah hasil analisis dari sistem.
+      </div>
+    </div>
+
+    <div class="soap-raw-output-container">
+      <div class="soap-raw-output-content">${formattedOutput}</div>
+    </div>
+
+    <div class="soap-copy-btn-container">
+      <button class="soap-copy-btn" id="soap-copy-output">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+        </svg>
+        Salin Hasil
+      </button>
+    </div>
+  `;
+}
+
 function getCorrectionsHTML(categoriesWithCorrections) {
   return `
     <div class="soap-info-banner">
@@ -1049,7 +1101,7 @@ function attachSidebarListeners() {
       state.activeTab = tabName;
 
       // If switching to writing tab and no recommendations yet, fetch them
-      if (tabName === 'writing' && state.writingRecommendations.length === 0 && !state.isLoadingWriting) {
+      if (tabName === 'writing' && state.writingRecommendations.length === 0 && !state.writingRawOutput && !state.isLoadingWriting) {
         sendToN8NWriting();
       }
 
@@ -1065,6 +1117,15 @@ function attachSidebarListeners() {
   // Analyze writing button
   document.getElementById('soap-analyze-writing')?.addEventListener('click', () => {
     sendToN8NWriting();
+  });
+
+  // Copy output button
+  document.getElementById('soap-copy-output')?.addEventListener('click', () => {
+    navigator.clipboard.writeText(state.writingRawOutput).then(() => {
+      showNotification('Hasil berhasil disalin!');
+    }).catch(() => {
+      showNotification('Gagal menyalin hasil', 'error');
+    });
   });
 
   // Accept recommendation buttons
